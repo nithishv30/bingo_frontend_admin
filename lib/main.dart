@@ -1,3 +1,4 @@
+import 'package:bingo_admin/Login/login.dart';
 import 'package:flutter/material.dart';
 import 'main_home_page.dart';
 
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.green,
       ),
-      home: const MainHomePage(),
+      home: const LoginPage(),
     );
   }
 }

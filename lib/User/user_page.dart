@@ -8,7 +8,7 @@ class UserPage extends StatelessWidget {
     return const Scaffold(
       body: Center(
         child: Text(
-          'My Order Page',
+          'User Details',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
       ),

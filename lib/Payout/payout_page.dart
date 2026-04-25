@@ -37,10 +37,10 @@ class PayoutPage extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
-            TodayPage(),
-            YesterdayPage(),
-            WeekPage(),
-            MonthPage(),
+            PayoutToday(),
+            PayoutYesterday(),
+            PayoutWeek(),
+            PayoutMonth(),
           ],
         ),
       ),

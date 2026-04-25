@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class WeekPage extends StatelessWidget {
-  const WeekPage({super.key});
+class PayoutWeek extends StatelessWidget {
+  const PayoutWeek({super.key});
 
   @override
   Widget build(BuildContext context) {

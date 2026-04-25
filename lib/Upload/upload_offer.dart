@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class PayoutToday extends StatelessWidget {
-  const PayoutToday ({super.key});
+class UploadOffer extends StatelessWidget {
+  const UploadOffer({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const Center(
       child: Text(
-        'Today',
+        'UploadOffer',
         style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
       ),
     );

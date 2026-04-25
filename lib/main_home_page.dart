@@ -5,21 +5,33 @@ import 'User/user_page.dart';
 import 'Rider/rider_page.dart';
 
 class MainHomePage extends StatefulWidget {
-  const MainHomePage({super.key});
+  final String token;
+
+  const MainHomePage({
+    super.key,
+    required this.token,
+  });
 
   @override
   State<MainHomePage> createState() => _MainHomePageState();
 }
 
 class _MainHomePageState extends State<MainHomePage> {
-  int _selectedIndex = 2; // Grocery first open
+  int _selectedIndex = 1;
 
-  final List<Widget> _pages = const [
-    PayoutPage(),
-    UploadPage(),
-    RiderPage(),
-    UserPage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _pages = [
+      const PayoutPage(),
+      UploadPage(token: widget.token), // ✅ correct
+      const RiderPage(),
+      const UserPage(),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
