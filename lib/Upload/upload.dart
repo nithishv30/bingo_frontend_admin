@@ -16,8 +16,6 @@ class Upload extends StatefulWidget {
 }
 
 class _UploadState extends State<Upload> {
-  final mainCategoryController = TextEditingController();
-  final subCategoryController = TextEditingController();
   final actualPriceController = TextEditingController();
   final currentPriceController = TextEditingController();
   final quantityController = TextEditingController();
@@ -27,8 +25,144 @@ class _UploadState extends State<Upload> {
   final stockSizeController = TextEditingController();
   final barcodeController = TextEditingController();
 
+  List<String> mainCategories = [];
+  List<String> subCategories = [];
+
+  String? selectedMainCategory;
+  String? selectedSubCategory;
+
   File? selectedImage;
   bool isLoading = false;
+  bool categoryLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    loadMainCategories();
+  }
+
+  Future<void> loadMainCategories() async {
+    try {
+      setState(() => categoryLoading = true);
+      final data = await ProductApiService.getMainCategories();
+      setState(() => mainCategories = data);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      setState(() => categoryLoading = false);
+    }
+  }
+
+  Future<void> loadSubCategories(String mainCategory) async {
+    try {
+      final data = await ProductApiService.getSubCategories(mainCategory);
+      setState(() {
+        subCategories = data;
+        selectedSubCategory = null;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  Future<void> addNewMainCategory() async {
+    final controller = TextEditingController();
+
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Main Category'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'Enter main category',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final text = controller.text.trim();
+                if (text.isNotEmpty) {
+                  Navigator.pop(context, text);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (value != null && value.isNotEmpty) {
+      setState(() {
+        if (!mainCategories.contains(value)) {
+          mainCategories.add(value);
+        }
+        selectedMainCategory = value;
+        selectedSubCategory = null;
+        subCategories = [];
+      });
+    }
+  }
+
+  Future<void> addNewSubCategory() async {
+    if (selectedMainCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select main category first')),
+      );
+      return;
+    }
+
+    final controller = TextEditingController();
+
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Sub Category'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'Enter sub category',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final text = controller.text.trim();
+                if (text.isNotEmpty) {
+                  Navigator.pop(context, text);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (value != null && value.isNotEmpty) {
+      setState(() {
+        if (!subCategories.contains(value)) {
+          subCategories.add(value);
+        }
+        selectedSubCategory = value;
+      });
+    }
+  }
 
   Future<void> pickImage() async {
     final picked = await ImagePicker().pickImage(
@@ -44,6 +178,20 @@ class _UploadState extends State<Upload> {
   }
 
   Future<void> submitProduct() async {
+    if (selectedMainCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select main category')),
+      );
+      return;
+    }
+
+    if (selectedSubCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select sub category')),
+      );
+      return;
+    }
+
     if (selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select product image')),
@@ -52,14 +200,12 @@ class _UploadState extends State<Upload> {
     }
 
     try {
-      setState(() {
-        isLoading = true;
-      });
+      setState(() => isLoading = true);
 
       final result = await ProductApiService.addProduct(
         token: widget.token,
-        mainCategory: mainCategoryController.text.trim(),
-        subCategory: subCategoryController.text.trim(),
+        mainCategory: selectedMainCategory!,
+        subCategory: selectedSubCategory!,
         actualPrice: actualPriceController.text.trim(),
         currentPrice: currentPriceController.text.trim(),
         quantity: quantityController.text.trim(),
@@ -92,9 +238,7 @@ class _UploadState extends State<Upload> {
         SnackBar(content: Text(e.toString())),
       );
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
@@ -113,15 +257,92 @@ class _UploadState extends State<Upload> {
     );
   }
 
+  Widget dropdownWithAddButton({
+    required String hint,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+    required VoidCallback onAdd,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: value,
+              decoration: InputDecoration(
+                hintText: hint,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              items: items.map((item) {
+                return DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item),
+                );
+              }).toList(),
+              onChanged: onChanged,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            height: 56,
+            width: 56,
+            decoration: BoxDecoration(
+              color: Colors.green,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
+      body: categoryLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            inputField('Main Category', mainCategoryController),
-            inputField('Sub Category', subCategoryController),
+            dropdownWithAddButton(
+              hint: 'Select Main Category',
+              value: selectedMainCategory,
+              items: mainCategories,
+              onAdd: addNewMainCategory,
+              onChanged: (value) {
+                setState(() {
+                  selectedMainCategory = value;
+                  selectedSubCategory = null;
+                  subCategories = [];
+                });
+
+                if (value != null) {
+                  loadSubCategories(value);
+                }
+              },
+            ),
+
+            dropdownWithAddButton(
+              hint: 'Select Sub Category',
+              value: selectedSubCategory,
+              items: subCategories,
+              onAdd: addNewSubCategory,
+              onChanged: (value) {
+                setState(() {
+                  selectedSubCategory = value;
+                });
+              },
+            ),
+
             inputField('Actual Price', actualPriceController),
             inputField('Current Price', currentPriceController),
             inputField('Quantity', quantityController),

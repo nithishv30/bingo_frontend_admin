@@ -37,7 +37,7 @@ class UploadPage extends StatelessWidget {
         body: TabBarView(
           children: [
             Upload(token: token),
-            const UploadEdit(),
+            UploadEdit(token: token),
             const UploadOffer(),
             const UploadOfferEdit(),
             const Ads(),

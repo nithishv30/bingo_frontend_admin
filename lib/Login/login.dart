@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Api/auth_api_service.dart';
 import '../main_home_page.dart';
+import 'register.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -24,12 +25,10 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (res['success'] == true) {
-        final token = res['token'];
-
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => MainHomePage(token: token),
+            builder: (_) => MainHomePage(token: res['token']),
           ),
         );
       } else {
@@ -49,9 +48,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Login'),
-      ),
+      appBar: AppBar(title: const Text('Admin Login')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -65,12 +62,29 @@ class _LoginPageState extends State<LoginPage> {
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Password'),
             ),
+
             const SizedBox(height: 20),
+
             ElevatedButton(
               onPressed: loading ? null : login,
               child: loading
                   ? const CircularProgressIndicator()
                   : const Text('Login'),
+            ),
+
+            const SizedBox(height: 10),
+
+            // ✅ REGISTER BUTTON INSIDE COLUMN
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const RegisterPage(),
+                  ),
+                );
+              },
+              child: const Text('Create new account'),
             ),
           ],
         ),
