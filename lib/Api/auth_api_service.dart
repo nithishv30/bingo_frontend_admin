@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthApiService {
-  static const String baseUrl = 'http://192.168.31.178:8080';
+  static const String baseUrl = 'http://172.16.131.129:8080';
 
   static Map<String, dynamic> _decodeResponse(http.Response response) {
     if (response.body.isEmpty) {

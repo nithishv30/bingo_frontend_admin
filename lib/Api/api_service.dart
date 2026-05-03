@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'product_model.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.31.178:8080';
+  static const String baseUrl = 'http://172.16.131.129:8080';
 
   static Future<List<ProductModel>> getProducts() async {
     final response = await http.get(

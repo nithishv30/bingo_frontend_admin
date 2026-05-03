@@ -18,12 +18,13 @@ class Upload extends StatefulWidget {
 class _UploadState extends State<Upload> {
   final actualPriceController = TextEditingController();
   final currentPriceController = TextEditingController();
-  final quantityController = TextEditingController();
+  final moreInfoController = TextEditingController();
   final nameController = TextEditingController();
   final reviewController = TextEditingController();
   final availabilityController = TextEditingController();
   final stockSizeController = TextEditingController();
   final barcodeController = TextEditingController();
+  final descriptionController = TextEditingController();
 
   List<String> mainCategories = [];
   List<String> subCategories = [];
@@ -41,31 +42,51 @@ class _UploadState extends State<Upload> {
     loadMainCategories();
   }
 
+  @override
+  void dispose() {
+    actualPriceController.dispose();
+    currentPriceController.dispose();
+    moreInfoController.dispose();
+    nameController.dispose();
+    reviewController.dispose();
+    availabilityController.dispose();
+    stockSizeController.dispose();
+    barcodeController.dispose();
+    descriptionController.dispose();
+    super.dispose();
+  }
+
   Future<void> loadMainCategories() async {
     try {
       setState(() => categoryLoading = true);
       final data = await ProductApiService.getMainCategories();
-      setState(() => mainCategories = data);
+
+      if (!mounted) return;
+
+      setState(() {
+        mainCategories = data;
+      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      showMessage(e.toString());
     } finally {
-      setState(() => categoryLoading = false);
+      if (mounted) {
+        setState(() => categoryLoading = false);
+      }
     }
   }
 
   Future<void> loadSubCategories(String mainCategory) async {
     try {
       final data = await ProductApiService.getSubCategories(mainCategory);
+
+      if (!mounted) return;
+
       setState(() {
         subCategories = data;
         selectedSubCategory = null;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      showMessage(e.toString());
     }
   }
 
@@ -102,12 +123,16 @@ class _UploadState extends State<Upload> {
       },
     );
 
-    if (value != null && value.isNotEmpty) {
+    controller.dispose();
+
+    if (value != null && value.trim().isNotEmpty) {
+      final category = value.trim();
+
       setState(() {
-        if (!mainCategories.contains(value)) {
-          mainCategories.add(value);
+        if (!mainCategories.contains(category)) {
+          mainCategories.add(category);
         }
-        selectedMainCategory = value;
+        selectedMainCategory = category;
         selectedSubCategory = null;
         subCategories = [];
       });
@@ -116,9 +141,7 @@ class _UploadState extends State<Upload> {
 
   Future<void> addNewSubCategory() async {
     if (selectedMainCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select main category first')),
-      );
+      showMessage('Please select main category first');
       return;
     }
 
@@ -154,12 +177,16 @@ class _UploadState extends State<Upload> {
       },
     );
 
-    if (value != null && value.isNotEmpty) {
+    controller.dispose();
+
+    if (value != null && value.trim().isNotEmpty) {
+      final category = value.trim();
+
       setState(() {
-        if (!subCategories.contains(value)) {
-          subCategories.add(value);
+        if (!subCategories.contains(category)) {
+          subCategories.add(category);
         }
-        selectedSubCategory = value;
+        selectedSubCategory = category;
       });
     }
   }
@@ -177,27 +204,57 @@ class _UploadState extends State<Upload> {
     }
   }
 
-  Future<void> submitProduct() async {
+  bool validateForm() {
     if (selectedMainCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select main category')),
-      );
-      return;
+      showMessage('Please select main category');
+      return false;
     }
 
     if (selectedSubCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select sub category')),
-      );
-      return;
+      showMessage('Please select sub category');
+      return false;
+    }
+
+    if (actualPriceController.text.trim().isEmpty) {
+      showMessage('Please enter actual price');
+      return false;
+    }
+
+    if (currentPriceController.text.trim().isEmpty) {
+      showMessage('Please enter current price');
+      return false;
+    }
+
+    if (double.tryParse(actualPriceController.text.trim()) == null) {
+      showMessage('Actual price must be number');
+      return false;
+    }
+
+    if (double.tryParse(currentPriceController.text.trim()) == null) {
+      showMessage('Current price must be number');
+      return false;
+    }
+
+    if (nameController.text.trim().isEmpty) {
+      showMessage('Please enter product name');
+      return false;
+    }
+
+    if (stockSizeController.text.trim().isEmpty) {
+      showMessage('Please enter stock size');
+      return false;
     }
 
     if (selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select product image')),
-      );
-      return;
+      showMessage('Please select product image');
+      return false;
     }
+
+    return true;
+  }
+
+  Future<void> submitProduct() async {
+    if (!validateForm()) return;
 
     try {
       setState(() => isLoading = true);
@@ -208,45 +265,66 @@ class _UploadState extends State<Upload> {
         subCategory: selectedSubCategory!,
         actualPrice: actualPriceController.text.trim(),
         currentPrice: currentPriceController.text.trim(),
-        quantity: quantityController.text.trim(),
+        moreInfo: moreInfoController.text.trim(),
         name: nameController.text.trim(),
         imageFile: selectedImage!,
         review: reviewController.text.trim(),
-        availability: availabilityController.text.trim(),
+        availability: availabilityController.text.trim().isEmpty
+            ? 'Yes'
+            : availabilityController.text.trim(),
         stockSize: stockSizeController.text.trim(),
         barcode: barcodeController.text.trim(),
+        description: descriptionController.text.trim(),
       );
 
-      actualPriceController.clear();
-      currentPriceController.clear();
-      quantityController.clear();
-      nameController.clear();
-      reviewController.clear();
-      availabilityController.clear();
-      stockSizeController.clear();
-      barcodeController.clear();
+      clearForm();
 
-      setState(() {
-        selectedImage = null;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Product added: ${result['name']}')),
-      );
+      showMessage('Product added: ${result['name'] ?? 'Success'}');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      showMessage(e.toString());
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
-  Widget inputField(String hint, TextEditingController controller) {
+  void clearForm() {
+    actualPriceController.clear();
+    currentPriceController.clear();
+    moreInfoController.clear();
+    nameController.clear();
+    reviewController.clear();
+    availabilityController.clear();
+    stockSizeController.clear();
+    barcodeController.clear();
+    descriptionController.clear();
+
+    setState(() {
+      selectedImage = null;
+    });
+  }
+
+  void showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Widget inputField(
+      String hint,
+      TextEditingController controller, {
+        TextInputType keyboardType = TextInputType.text,
+        int maxLines = 1,
+      }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
         decoration: InputDecoration(
           hintText: hint,
           border: OutlineInputBorder(
@@ -280,23 +358,29 @@ class _UploadState extends State<Upload> {
               items: items.map((item) {
                 return DropdownMenuItem<String>(
                   value: item,
-                  child: Text(item),
+                  child: Text(
+                    item,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 );
               }).toList(),
               onChanged: onChanged,
             ),
           ),
           const SizedBox(width: 8),
-          Container(
+          SizedBox(
             height: 56,
             width: 56,
-            decoration: BoxDecoration(
-              color: Colors.green,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
+            child: ElevatedButton(
               onPressed: onAdd,
-              icon: const Icon(Icons.add, color: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Icon(Icons.add, color: Colors.white),
             ),
           ),
         ],
@@ -309,79 +393,100 @@ class _UploadState extends State<Upload> {
     return Scaffold(
       body: categoryLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            dropdownWithAddButton(
-              hint: 'Select Main Category',
-              value: selectedMainCategory,
-              items: mainCategories,
-              onAdd: addNewMainCategory,
-              onChanged: (value) {
-                setState(() {
-                  selectedMainCategory = value;
-                  selectedSubCategory = null;
-                  subCategories = [];
-                });
+          : SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              dropdownWithAddButton(
+                hint: 'Select Main Category',
+                value: selectedMainCategory,
+                items: mainCategories,
+                onAdd: addNewMainCategory,
+                onChanged: (value) {
+                  setState(() {
+                    selectedMainCategory = value;
+                    selectedSubCategory = null;
+                    subCategories = [];
+                  });
 
-                if (value != null) {
-                  loadSubCategories(value);
-                }
-              },
-            ),
+                  if (value != null) {
+                    loadSubCategories(value);
+                  }
+                },
+              ),
 
-            dropdownWithAddButton(
-              hint: 'Select Sub Category',
-              value: selectedSubCategory,
-              items: subCategories,
-              onAdd: addNewSubCategory,
-              onChanged: (value) {
-                setState(() {
-                  selectedSubCategory = value;
-                });
-              },
-            ),
+              dropdownWithAddButton(
+                hint: 'Select Sub Category',
+                value: selectedSubCategory,
+                items: subCategories,
+                onAdd: addNewSubCategory,
+                onChanged: (value) {
+                  setState(() {
+                    selectedSubCategory = value;
+                  });
+                },
+              ),
 
-            inputField('Actual Price', actualPriceController),
-            inputField('Current Price', currentPriceController),
-            inputField('Quantity', quantityController),
-            inputField('Product Name', nameController),
-            inputField('Review', reviewController),
-            inputField('Availability', availabilityController),
-            inputField('Stock Size', stockSizeController),
-            inputField('Barcode optional', barcodeController),
+              inputField(
+                'Actual Price',
+                actualPriceController,
+                keyboardType: TextInputType.number,
+              ),
+              inputField(
+                'Current Price',
+                currentPriceController,
+                keyboardType: TextInputType.number,
+              ),
+              inputField('More Info', moreInfoController),
+              inputField('Product Name', nameController),
+              inputField('Review', reviewController),
+              inputField('Availability', availabilityController),
+              inputField('Stock Size ex: 100kg / 5L / 500ml', stockSizeController),
+              inputField('Barcode optional', barcodeController),
+              inputField(
+                'Description',
+                descriptionController,
+                maxLines: 3,
+              ),
 
-            const SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-            GestureDetector(
-              onTap: pickImage,
-              child: Container(
-                height: 160,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(12),
+              GestureDetector(
+                onTap: pickImage,
+                child: Container(
+                  height: 160,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: selectedImage == null
+                      ? const Center(child: Text('Select Image'))
+                      : ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      selectedImage!,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
-                child: selectedImage == null
-                    ? const Center(child: Text('Select Image'))
-                    : Image.file(selectedImage!, fit: BoxFit.cover),
               ),
-            ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : submitProduct,
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Add Product'),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : submitProduct,
+                  child: isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Add Product'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
